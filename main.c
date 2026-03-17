@@ -1,159 +1,137 @@
+#include <stdio.h>
 #include <raylib.h>
 #define RAYGUI_IMPLEMENTATION
 #include "src/raygui.h"
-#include <stdio.h>
-
-
-// ===========================
-// GUI Constants
-const int LABEL_SIZE = 100;
-const int SCREEN_WIDTH = 400;
-const int SCREEN_HEIGHT = 600;
-// ===========================
-
-
-typedef enum {
-	FIRST_INPUT,
-	SECOND_INPUT,
-	SHOW_RESULT
-} CalculationStage;
-
-
-typedef enum {
-	ADD,
-	SUBTRACT,
-	MULTIPLY,
-	DIVIDE
-} Operation;
-
-
-typedef struct {
-	char label_str[LABEL_SIZE];
-} GuiData;
-
-
-typedef struct {
-	GuiData gui_data;
-	CalculationStage stage;
-	Operation operation;
-	int first_num;
-	int second_num;
-	int result;
-} AppContext;
-
-
-// ===========================
-// Forward Declarations
-void draw_gui(AppContext* ctx);
-void setup_number_grid(AppContext* ctx);
-void setup_last_row(int start_x, int start_y, int width, int height, int padding);
-void setup_operation_row(int start_x, int start_y, int width, int height, int padding);
-AppContext new_app_context();
-AppContext* allocate_app_context();
-void destroy_app_context(AppContext* ctx);
-// ===========================
+#include "src/calc.h"
+#include "src/main.h"
 
 
 int main() {
 	InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "gml - raylib calculator");	
 	SetTargetFPS(60);
 
-	AppContext* ctx = allocate_app_context();
+	AppContext ctx = { 0 };
+	ctx.display_str = malloc(sizeof(char) * DISPLAY_STR_SIZE);
+	snprintf(ctx.display_str, DISPLAY_STR_SIZE, "Welcome to the calculator!");
+	ctx.stage = FIRST_INPUT;
 
 	while (!WindowShouldClose()) {
-		draw_gui(ctx);
-	}	
+		draw_gui(&ctx);
+	}
 
-	destroy_app_context(ctx);
-}
-
-
-AppContext* allocate_app_context() {
-	//GuiData gui = { .label_str = "Click a number to start input." };
-	AppContext* ctx = (AppContext*) malloc(sizeof(AppContext));
-	ctx->gui_data = (GuiData){ .label_str = "Hello!" };
-	ctx->stage = FIRST_INPUT;
-	return ctx;
-}
-
-
-void destroy_app_context(AppContext* ctx) {
-	free(ctx);
+	free(ctx.display_str);
 }
 
 
 void draw_gui(AppContext* ctx) {
 	BeginDrawing();
 		ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
-		setup_number_grid(ctx);
-		DrawText(ctx->gui_data.label_str, 100, 50, 16, GetColor(GuiGetStyle(DEFAULT, TEXT_COLOR_NORMAL)));
+		setup_math_display(ctx);
+		setup_button_grid(ctx);
 	EndDrawing();
 }
 
 
-void setup_number_grid(AppContext* ctx) {
-	int grid_width = SCREEN_WIDTH - 40;
-	int grid_hmargin = (SCREEN_WIDTH - grid_width) / 2;
-	int grid_vmargin_top = 200;
-	int grid_vmargin_bot = 110;
-	int grid_height = SCREEN_HEIGHT - (grid_vmargin_top + grid_vmargin_bot);
-	int grid_cell_hcount = 3;
-	int grid_cell_vcount = 3;
-	int grid_cell_width = grid_width / grid_cell_hcount;
-	int grid_cell_height = grid_height / grid_cell_vcount;
-	int grid_cell_padding = 2;
+void setup_math_display(AppContext* ctx) {
+		DrawText(
+			ctx->display_str,
+			H_MARGIN,
+			DISPLAY_BOX_HEIGHT/2,
+			20,
+			GetColor(GuiGetStyle(DEFAULT, TEXT_COLOR_NORMAL))
+		);
+}
 
-	setup_operation_row(grid_hmargin, grid_vmargin_top - 58, grid_width, grid_cell_height * 3 / 5, 2);
 
-	// Set up 1-9 buttons
-	for (int i = 0; i < 9; i++) {
-		int y = i / grid_cell_hcount;
-		int x = i % grid_cell_hcount;
-		int num = i + 1;
-		
-		char label[10] = { 0 };
-		snprintf(label, 2, "%d", num);
+void setup_button_grid(AppContext* ctx) {
+	const int grid_width = SCREEN_WIDTH - (H_MARGIN * 2);
+	const int grid_height = SCREEN_HEIGHT - (V_MARGIN * 2) - DISPLAY_BOX_HEIGHT;
+	const int grid_cols = 3;
+	const int grid_rows = 5;
+	const int grid_cell_width = grid_width / grid_cols;
+	const int grid_cell_height = grid_height / grid_rows;
 
-		int start_x = grid_hmargin + (grid_cell_width * x) + grid_cell_padding;
-		int start_y = grid_vmargin_top + (grid_cell_height * y);
+	for (int i = 0; i < grid_cols * grid_rows; i++) {
+		int y = i / grid_cols;
+		int x = i % grid_cols;
 
-		if (GuiButton((Rectangle){ start_x, start_y, grid_cell_width - (grid_cell_padding * 2),
-							   grid_cell_height - (grid_cell_padding * 2) }, label)) {
-								snprintf(ctx->gui_data.label_str, LABEL_SIZE, "%d", i + 1);
-							   }
+		Rectangle btn_dimensions = {
+			.x = H_MARGIN + (x * grid_cell_width) + BTN_PADDING,
+			.y = V_MARGIN + DISPLAY_BOX_HEIGHT + (y * grid_cell_height) + BTN_PADDING,
+			.width = grid_cell_width - (BTN_PADDING * 2),
+			.height = grid_cell_height - (BTN_PADDING * 2)
+		};
+
+		char label[DISPLAY_STR_SIZE];
+
+		// Set-up 1-9 buttons
+		if (i > 2 && i < 12) {
+			int digit = i - 3;
+			snprintf(label, DISPLAY_STR_SIZE, "%d", digit);
+			if (GuiButton(
+				btn_dimensions,
+				label
+			)) { append_digit(digit, ctx); }
+			continue;
+		}
+
+		// Set-up top and bottom row
+		Rectangle mult_dimensions = btn_dimensions;
+		Rectangle div_dimensions = btn_dimensions;
+		switch (i) {
+			case 0: // Add Button
+				if (GuiButton(
+					btn_dimensions,
+					"+"
+				)) { start_operation(ADD, ctx); }
+				break;
+
+			case 1: // Subtract Button
+				if (GuiButton(
+					btn_dimensions,
+					"-"
+				)) { start_operation(SUBTRACT, ctx); }
+				break;
+
+			case 2: // Multiply & Divide Buttons
+				mult_dimensions.height /= 2;
+				mult_dimensions.height -= BTN_PADDING;
+				div_dimensions.height /= 2;
+				div_dimensions.height -= BTN_PADDING;
+				div_dimensions.y += mult_dimensions.height + (2 * BTN_PADDING);
+				
+				if (GuiButton(
+					mult_dimensions,
+					"*"
+				)) { start_operation(MULTIPLY, ctx); }
+
+				if (GuiButton(
+					div_dimensions,
+					"/"
+				)) { start_operation(DIVIDE, ctx); }
+
+				break;
+
+			case 12: // Decimal Button
+				if (GuiButton(
+					btn_dimensions,
+					"."
+				)) { make_decimal(ctx); }
+				break;
+
+			case 13: // Zero Button
+				if (GuiButton(
+					btn_dimensions,
+					"0"
+				)) { append_digit(0, ctx); }
+				break;
+
+			case 14: // Equals Button
+				if (GuiButton(
+					btn_dimensions,
+					"="
+				)) { calculate_result(ctx); }
+				break;
+		}
 	}
-
-	int last_row_start_x = grid_hmargin;
-	int last_row_start_y = grid_vmargin_top + (grid_cell_height * 3);
-	setup_last_row(last_row_start_x, last_row_start_y, grid_width, grid_cell_height, grid_cell_padding);
-}
-
-
-void setup_operation_row(int start_x, int start_y, int width, int height, int padding) {
-	int cell_width = width / 3;
-	int btn_width = cell_width - (2 * padding);
-	int btn_height = height - (2 * padding);
-
-	GuiButton((Rectangle) { start_x + padding, start_y,
-		btn_width, btn_height }, "+");
-	GuiButton((Rectangle) { start_x + cell_width + padding, start_y,
-		btn_width, btn_height }, "-");
-	GuiButton((Rectangle) { start_x + (2 * cell_width) + padding, start_y,
-		btn_width, btn_height / 2 - padding }, "*");
-	GuiButton((Rectangle) { start_x + (2 * cell_width) + padding, start_y + btn_height / 2 + padding + 1,
-		btn_width, btn_height / 2 - padding }, "/");
-}
-
-
-void setup_last_row(int start_x, int start_y, int width, int height, int padding) {
-	int cell_width = width / 3;
-	int btn_width = cell_width - (2 * padding);
-	int btn_height = height - (2 * padding);
-
-	GuiButton((Rectangle) { start_x + padding, start_y,
-		btn_width, btn_height }, "DOT");
-	GuiButton((Rectangle) { start_x + cell_width + padding, start_y,
-		btn_width, btn_height }, "0");
-	GuiButton((Rectangle) { start_x + (2 * cell_width) + padding, start_y,
-		btn_width, btn_height }, "EQUALS");
 }

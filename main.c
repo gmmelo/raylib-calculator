@@ -13,7 +13,7 @@ int main() {
 	AppContext ctx = { 0 };
 	ctx.display_str = malloc(sizeof(char) * DISPLAY_STR_SIZE);
 	snprintf(ctx.display_str, DISPLAY_STR_SIZE, "Welcome to the calculator!");
-	ctx.stage = FIRST_INPUT;
+	ctx.stage = SHOW_RESULT;
 
 	while (!WindowShouldClose()) {
 		draw_gui(&ctx);
@@ -66,12 +66,14 @@ void setup_button_grid(AppContext* ctx) {
 
 		// Set-up 1-9 buttons
 		if (i > 2 && i < 12) {
-			int digit = i - 3;
+			int digit = i - 2;
 			snprintf(label, DISPLAY_STR_SIZE, "%d", digit);
+
 			if (GuiButton(
 				btn_dimensions,
 				label
-			)) { append_digit(digit, ctx); }
+			)) { append_digit(label, ctx); }
+
 			continue;
 		}
 
@@ -123,7 +125,7 @@ void setup_button_grid(AppContext* ctx) {
 				if (GuiButton(
 					btn_dimensions,
 					"0"
-				)) { append_digit(0, ctx); }
+				)) { append_digit("0", ctx); }
 				break;
 
 			case 14: // Equals Button

@@ -27,8 +27,9 @@ typedef struct {
 	char* display_str;
 	CalculationStage stage;
 	Operation operation;
-	int first_num;
-	int second_num;
+	char first_num[DISPLAY_STR_SIZE];
+	char second_num[DISPLAY_STR_SIZE];
+	char is_decimal;
 } AppContext;
 
 void draw_gui(AppContext* ctx);

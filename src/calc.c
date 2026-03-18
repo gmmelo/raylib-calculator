@@ -10,14 +10,14 @@ void append_digit(char* digit, AppContext* ctx) {
             ctx->stage = FIRST_INPUT;
             ctx->is_decimal = 0;
         case FIRST_INPUT:
-            strlcpy(ctx->first_num, digit, DISPLAY_STR_SIZE);
+            snprintf(ctx->first_num, DISPLAY_STR_SIZE, "%s", digit);
             break;
         case SECOND_INPUT:
-            strlcpy(ctx->second_num, digit, DISPLAY_STR_SIZE);
+            snprintf(ctx->second_num, DISPLAY_STR_SIZE, "%s", digit);
             break;
     }
 
-    strlcat(ctx->display_str, digit, DISPLAY_STR_SIZE);
+    snprintf(ctx->display_str, DISPLAY_STR_SIZE, "%s%s", ctx->display_str, digit);
 }
 
 void start_operation(Operation operation, AppContext* ctx) {
@@ -29,23 +29,23 @@ void start_operation(Operation operation, AppContext* ctx) {
         case SECOND_INPUT:
             return;
         case SHOW_RESULT:
-            strlcpy(ctx->first_num, ctx->display_str, DISPLAY_STR_SIZE);
+            snprintf(ctx->first_num, DISPLAY_STR_SIZE, "%s", ctx->display_str);
             ctx->stage = FIRST_INPUT;
             break;
     }
     
     switch (operation) {
         case ADD:
-            strlcat(ctx->display_str, "+", DISPLAY_STR_SIZE);
+            snprintf(ctx->display_str, DISPLAY_STR_SIZE, "%s+", ctx->display_str);
             break;
         case SUBTRACT:
-            strlcat(ctx->display_str, "-", DISPLAY_STR_SIZE);
+            snprintf(ctx->display_str, DISPLAY_STR_SIZE, "%s-", ctx->display_str);
             break;
         case MULTIPLY:
-            strlcat(ctx->display_str, "*", DISPLAY_STR_SIZE);
+            snprintf(ctx->display_str, DISPLAY_STR_SIZE, "%s*", ctx->display_str);
             break;
         case DIVIDE:
-            strlcat(ctx->display_str, "/", DISPLAY_STR_SIZE);
+            snprintf(ctx->display_str, DISPLAY_STR_SIZE, "%s/", ctx->display_str);
             break;
     }
 

@@ -17,7 +17,9 @@ void append_digit(char* digit, AppContext* ctx) {
             break;
     }
 
-    snprintf(ctx->display_str, DISPLAY_STR_SIZE, "%s%s", ctx->display_str, digit);
+    int display_len = strlen(ctx->display_str); 
+    // Concatenate to display_str
+    snprintf(ctx->display_str + display_len, DISPLAY_STR_SIZE - display_len, "%s", digit);
 }
 
 void start_operation(Operation operation, AppContext* ctx) {
@@ -34,18 +36,19 @@ void start_operation(Operation operation, AppContext* ctx) {
             break;
     }
     
+    int display_len = strlen(ctx->display_str);
     switch (operation) {
         case ADD:
-            snprintf(ctx->display_str, DISPLAY_STR_SIZE, "%s+", ctx->display_str);
+            snprintf(ctx->display_str + display_len, DISPLAY_STR_SIZE - display_len, "%s", "+");
             break;
         case SUBTRACT:
-            snprintf(ctx->display_str, DISPLAY_STR_SIZE, "%s-", ctx->display_str);
+            snprintf(ctx->display_str + display_len, DISPLAY_STR_SIZE - display_len, "%s", "-");
             break;
         case MULTIPLY:
-            snprintf(ctx->display_str, DISPLAY_STR_SIZE, "%s*", ctx->display_str);
+            snprintf(ctx->display_str + display_len, DISPLAY_STR_SIZE - display_len, "%s", "*");
             break;
         case DIVIDE:
-            snprintf(ctx->display_str, DISPLAY_STR_SIZE, "%s/", ctx->display_str);
+            snprintf(ctx->display_str + display_len, DISPLAY_STR_SIZE - display_len, "%s", "/");
             break;
     }
 
